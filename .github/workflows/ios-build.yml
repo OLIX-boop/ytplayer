@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -113,7 +113,7 @@ jobs:
           echo "ipa_name=$IPA_NAME" >> "$GITHUB_ENV"
 
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ytplayer-ios-unsigned-${{ github.run_number }}
           path: ${{ runner.temp }}/${{ env.ipa_name }}
