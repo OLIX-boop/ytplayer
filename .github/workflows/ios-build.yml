@@ -62,15 +62,22 @@ jobs:
         working-directory: app/ios
         run: |
           pod install --repo-update
-          ls -1 *.xcworkspace
+          ls -1d *.xcworkspace
 
       - name: Resolve workspace & scheme name
         id: scheme
         working-directory: app/ios
         run: |
-          NAME=$(ls *.xcworkspace | sed 's/\.xcworkspace$//')
+          WORKSPACE=$(ls -d *.xcworkspace 2>/dev/null | head -1)
+          if [ -z "$WORKSPACE" ]; then
+            echo "ERROR: no .xcworkspace found in $(pwd)"
+            ls -la
+            exit 1
+          fi
+          NAME="${WORKSPACE%.xcworkspace}"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "Detected scheme: $NAME"
+          echo "Detected workspace: $WORKSPACE"
+          echo "Detected scheme:    $NAME"
 
       - name: Disable code signing on all Xcode projects
         working-directory: app/ios
