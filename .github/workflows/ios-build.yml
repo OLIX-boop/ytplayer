@@ -61,7 +61,23 @@ jobs:
       - name: Install CocoaPods
         working-directory: app/ios
         run: |
-          pod install --repo-update
+          set -e
+          # Primo tentativo: usa la cache locale del runner (veloce, no CDN)
+          if pod install; then
+            echo "pod install OK (cached specs)"
+          else
+            echo "First attempt failed — retrying with repo update..."
+            # Piccola pausa per eventuali hiccup di rete + retry con update
+            sleep 10
+            for i in 1 2 3; do
+              if pod install --repo-update; then
+                echo "pod install OK on retry $i"
+                break
+              fi
+              echo "Retry $i failed, waiting before next..."
+              sleep $((i * 15))
+            done
+          fi
           ls -1d *.xcworkspace
 
       - name: Resolve workspace & scheme name
