@@ -10,8 +10,11 @@ import { colors } from '@/theme';
 import { setupPlayer } from '@/services/trackPlayer';
 import { usePlayerStore } from '@/store/playerStore';
 import type { TrackSummary } from '@/api/types';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
+try {
+  SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
+} catch {}
 
 const navTheme: Theme = {
   ...DefaultTheme,
@@ -54,12 +57,14 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <SafeAreaProvider>
-        <NavigationContainer theme={navTheme}>
-          <StatusBar style="light" />
-          <RootNavigator />
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <NavigationContainer theme={navTheme}>
+            <StatusBar style="light" />
+            <RootNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }
