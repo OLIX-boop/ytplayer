@@ -16,6 +16,11 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 60
 
+    # Env var visibili a TUTTI gli step (incluso xcodebuild che bundla il JS)
+    env:
+      EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -39,20 +44,33 @@ jobs:
         working-directory: app
         run: npm ci
 
-      - name: Create .env from GitHub Secrets
+      - name: Create .env + inject into app.json extra
         working-directory: app
-        env:
-          API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
-          API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
         run: |
-          # Fallback ai default se i secret non sono configurati
-          : "${API_URL:=http://192.168.1.10:3000}"
-          : "${API_TOKEN:=}"
+          # Fallback se i secret sono vuoti
+          API_URL="${EXPO_PUBLIC_API_URL:-http://192.168.1.10:3000}"
+          API_TOKEN="${EXPO_PUBLIC_API_TOKEN:-}"
+
+          # Scrivi .env per Metro/Expo bundler
           cat > .env <<EOF
           EXPO_PUBLIC_API_URL=$API_URL
           EXPO_PUBLIC_API_TOKEN=$API_TOKEN
           EOF
-          echo "Built with API_URL=$API_URL"
+
+          # Inietta anche in app.json.expo.extra (così è leggibile via Constants.expoConfig.extra
+          # anche se per qualche motivo .env non viene caricato durante xcodebuild bundle phase)
+          node -e '
+            const fs = require("fs");
+            const cfg = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            cfg.expo.extra = cfg.expo.extra || {};
+            cfg.expo.extra.EXPO_PUBLIC_API_URL = process.env.API_URL_FINAL;
+            cfg.expo.extra.EXPO_PUBLIC_API_TOKEN = process.env.API_TOKEN_FINAL;
+            fs.writeFileSync("app.json", JSON.stringify(cfg, null, 2));
+            console.log("Injected into app.json.expo.extra:", cfg.expo.extra);
+          '
+        env:
+          API_URL_FINAL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+          API_TOKEN_FINAL: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
 
       - name: Expo prebuild
         working-directory: app

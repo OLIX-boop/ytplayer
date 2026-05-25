@@ -12,17 +12,27 @@ function authHeaders(): Record<string, string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...authHeaders(),
-      ...(init?.headers || {}),
-    },
-  });
+  const fullUrl = `${API_URL}${path}`;
+  let res: Response;
+  try {
+    res = await fetch(fullUrl, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...authHeaders(),
+        ...(init?.headers || {}),
+      },
+    });
+  } catch (err) {
+    const msg = (err as Error).message || 'Errore sconosciuto';
+    throw new ApiError(
+      `Impossibile contattare il backend.\n\nURL: ${fullUrl}\nErrore: ${msg}\n\nVerifica:\n• Tailscale attivo su iPhone e server\n• Backend in esecuzione (npm start)\n• EXPO_PUBLIC_API_URL nei GitHub Secrets è corretto`,
+      0
+    );
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new ApiError(text || res.statusText, res.status);
+    throw new ApiError(`${res.status} ${res.statusText}\n${text}\n\nURL: ${fullUrl}`, res.status);
   }
   return res.json() as Promise<T>;
 }
